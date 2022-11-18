@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
+  assignGroupID,
+  computeGroupID,
   decodeSignedTransaction,
   encodeAddress,
   makeAssetConfigTxnWithSuggestedParamsFromObject,
@@ -24,37 +26,41 @@ export class RevealService {
   async reveal(body: RevealDto) {
     await this.processBodyBeforeReveal(body);
 
-    const ipfsCid = pickAndRemoveRandomNFT();
+    const ipfsCid = this.pickAndRemoveRandomNFT();
 
     const reserveAddress = fromIpfsCidToAlgorandAddress(ipfsCid);
 
-    this.buildAndSignTxns(reserveAddress, body.assetId, body.signedTxn);
+    const assetCfgSignedTxn = await this.buildAndSignAssetCfg(
+      reserveAddress,
+      body.assetId,
+    );
 
-    await this.sendAtomic();
+    await this.algoDaemonService.sendSignedTxns([
+      Buffer.from(body.signedTxn, 'base64'),
+    ]);
+    await this.algoDaemonService.sendSignedTxns([assetCfgSignedTxn]);
+
+    return ipfsCid;
   }
 
-  private async buildAndSignTxns(reserveAddress: string, assetId: number, signedTxn: string) {
+  private pickAndRemoveRandomNFT() {
+    return pickAndRemoveRandomNFT()
+  }
+
+  private async buildAndSignAssetCfg(reserveAddress: string, assetId: number) {
     const assetCfgTxn = makeAssetConfigTxnWithSuggestedParamsFromObject({
       assetIndex: assetId,
       from: this.algoDaemonService.serverAddr,
-      strictEmptyAddressChecking: true,
+      strictEmptyAddressChecking: false,
       suggestedParams: await this.algoDaemonService.getSuggestedParams(),
-      reserve: reserveAddress,
       manager: process.env.PACK_CREATOR_ADDR,
-      clawback: process.env.PACK_CREATOR_ADDR,
-      freeze: '',
+      reserve: reserveAddress,
     });
 
-    const payTxnSigned = new Uint8Array(Buffer.from(signedTxn, "base64"))
-    const payTxn = decodeSignedTransaction(payTxnSigned);
-    assetCfgTxn.group = payTxn.txn.group;
-    
     const assetCfgSignedTxn = this.algoDaemonService.signTxn(assetCfgTxn);
-    
-    this.algoDaemonService.sendSignedTxns([payTxnSigned, assetCfgSignedTxn]);
-  }
 
-  private async sendAtomic() {}
+    return assetCfgSignedTxn;
+  }
 
   private async processBodyBeforeReveal(body: RevealDto) {
     const assetInfo = await this.checkIfNftExists(body.assetId);
@@ -99,12 +105,11 @@ export class RevealService {
       txn.amount >= parseInt(process.env.REQUIRED_FEE_FOR_REVEAL) &&
       encodeAddress(txn.to.publicKey) == this.algoDaemonService.serverAddr &&
       txn.type == TransactionType.pay &&
-      txn.fee == 1000 &&
-      txn.group.length
+      txn.fee == 1000
     ) {
       return address as string;
     } else {
-      throw new BadRequestException();
+      throw new BadRequestException('Invalid txn');
     }
   }
 

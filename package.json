@@ -27,10 +27,12 @@
     "@nestjs/jwt": "^9.0.0",
     "@nestjs/passport": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
+    "@types/lodash": "^4.14.189",
     "algosdk": "^1.23.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.2",
-    "multiformats": "^10.0.2",
+    "lodash": "^4.17.21",
+    "multiformats": "^9.9.0",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
@@ -77,6 +79,12 @@
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
+    ],
+    "testPathIgnorePatterns": [
+      "./src/storage"
+    ],
+    "setupFiles": [
+      "dotenv/config"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

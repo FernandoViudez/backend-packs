@@ -17,19 +17,18 @@ export class IndexerService extends BlockchainService {
   }
 
   async getAssetInfo(assetId: number): Promise<Asset> {
-    const { index, deleted, asset } = await this.client
-      .lookupAssetByID(assetId)
-      .do();
+    const result = await this.client.lookupAssetByID(assetId).do();
+    const {deleted, index, params} = result.asset;
     return {
       deleted,
       id: index,
-      creator: asset.params.creator,
-      manager: asset.params.manager,
-      name: asset.params.name,
-      reserve: asset.params.reserve,
-      unitName: asset.params['unit-name'],
-      total: asset.params.total,
-      decimals: asset.params.decimals,
+      creator: params.creator,
+      manager: params.manager,
+      name: params.name,
+      reserve: params.reserve,
+      unitName: params['unit-name'],
+      total: params.total,
+      decimals: params.decimals,
     };
   }
 

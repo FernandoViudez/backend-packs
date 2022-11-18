@@ -1,8 +1,6 @@
-import * as nacl from 'tweetnacl';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from '../dto/login.dto';
-import { decodeSignedTransaction, encodeAddress, encodeObj } from 'algosdk';
 import { verifySignedTxn } from '../../utils/verify.utils';
 
 @Injectable()

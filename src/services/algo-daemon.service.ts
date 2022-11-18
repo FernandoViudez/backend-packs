@@ -25,7 +25,7 @@ export class AlgoDaemonService extends BlockchainService {
   async sendSignedTxns(txns: Uint8Array[]) {
     try {
       const { txId } = await this.client.sendRawTransaction(txns).do();
-      await waitForConfirmation(this.client, txId, 3);
+      return await waitForConfirmation(this.client, txId, 10);
     } catch (error) {
       throw new InternalServerErrorException(error);
     }

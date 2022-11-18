@@ -1,7 +1,7 @@
 import { decodeSignedTransaction, encodeAddress, encodeObj } from "algosdk";
-import nacl from "tweetnacl";
+import * as nacl from "tweetnacl";
 
-export const verifySignedTxn = (signedTxn) => {
+export const verifySignedTxn = (signedTxn: string) => {
     const decodedTxn = decodeSignedTransaction(
       new Uint8Array(Buffer.from(signedTxn, 'base64')),
     );
