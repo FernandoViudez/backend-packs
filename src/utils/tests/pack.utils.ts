@@ -1,5 +1,6 @@
 import { Account } from "algosdk";
 import { AlgoDaemonService } from "../../services/algo-daemon.service";
+import { IndexerService } from "../../services/indexer.service";
 import { fromIpfsCidToAlgorandAddress } from "../ipfs.utils";
 import { getNFTPlaceholder } from "../NFTs.utils"
 
@@ -10,13 +11,13 @@ export class PackUtils {
         private readonly account: Account
     ){}
 
-    getTrantorianOfficialPackParams(cid: string) {
+    async getTrantorianOfficialPackParams(indexerService: IndexerService, cid: string) {
+        const length = await indexerService.getTotalAssetsForAccount(process.env.PACK_CREATOR_ADDR);
         return {
           decimals: 0,
           total: 1,
           defaultFrozen: false,
-          // TODO: length of the assets from this.account.addr + 1
-          assetName: `Pack #${new Date().getMilliseconds()}`,
+          assetName: `Pack #${length}`,
           manager: this.algoDaemonService.serverAddr,
           reserve: fromIpfsCidToAlgorandAddress(cid),
           unitName: process.env.PACK_UNIT_NAME,

@@ -13,8 +13,9 @@ export const pickAndRemoveRandomNFT = (): string => {
     throw new InternalServerErrorException("No NFTs left");
   }
   const idx = Math.floor(Math.random() * NFTs.others.length);
+  const aux = NFTs.others[idx].ipfs_uri;
   removeNFTFromList(idx);
-  return NFTs.others[idx].ipfs_uri;
+  return aux;
 };
 
 const removeNFTFromList = (nftIdx: number) => {

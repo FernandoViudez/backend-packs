@@ -2,6 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { generateAccount, makePaymentTxnWithSuggestedParamsFromObject } from 'algosdk';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { AlgoDaemonService } from '../../services/algo-daemon.service';
 import { LoginDto } from '../dto/login.dto';
 import { AuthService } from '../service/auth.service';
 import { AuthController } from './auth.controller';
@@ -11,11 +12,13 @@ describe('AuthController', () => {
   let service: AuthService;
   beforeEach(async () => {
     const jwtService = new JwtService();
-    service = new AuthService(jwtService);
+    const algoDaemonService = new AlgoDaemonService();
+    service = new AuthService(jwtService, algoDaemonService);
     controller = new AuthController(service);
     jest.spyOn(service, "login").mockImplementation(async (body: LoginDto) => {
         return {
           access_token: 'some-jwt',
+          program: 'some-program-result-b64'
         };
     })
   });
@@ -26,6 +29,7 @@ describe('AuthController', () => {
 
   type Response = { 
     access_token: string;
+    program: string;
   }
   it('should return access_token as object', async () => {
     const randomAddress = generateAccount();
@@ -48,6 +52,7 @@ describe('AuthController', () => {
 
     const result: Response = await controller.login(loginDto);
     expect(typeof result.access_token).toBe("string")
+    expect(typeof result.program).toBe('string');
   });
 
   it('should pass because of passing correct body', async () => {

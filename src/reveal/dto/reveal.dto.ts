@@ -6,5 +6,5 @@ export class RevealDto {
   readonly assetId: number;
   @IsString()
   @IsDefined()
-  readonly signedTxn: string;
+  readonly logicSig: string;
 }

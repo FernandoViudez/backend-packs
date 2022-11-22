@@ -6,8 +6,9 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './service/jwt-strategy.service';
 import { IndexerService } from '../services/indexer.service';
 import { ConfigService } from '@nestjs/config';
+import { AlgoDaemonService } from '../services/algo-daemon.service';
 @Module({
-  providers: [AuthService, JwtStrategy, IndexerService],
+  providers: [AuthService, JwtStrategy, AlgoDaemonService, IndexerService],
   controllers: [AuthController],
   imports: [
     PassportModule,

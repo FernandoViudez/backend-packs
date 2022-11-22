@@ -30,4 +30,8 @@ export class AlgoDaemonService extends BlockchainService {
       throw new InternalServerErrorException(error);
     }
   }
+
+  async compile(program: string | Uint8Array) {
+    return await this.client.compile(program).do();
+  }
 }

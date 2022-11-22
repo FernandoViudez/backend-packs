@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { assignGroupID, isValidAddress } from 'algosdk';
+import algosdk, { assignGroupID, encodeUint64, LogicSigAccount, logicSigFromByte, makeLogicSig } from 'algosdk';
 import { Asset } from '../../interfaces/asset.interface';
 import { AlgoDaemonService } from '../../services/algo-daemon.service';
 import { IndexerService } from '../../services/indexer.service';
@@ -9,12 +9,14 @@ import { PackUtils } from '../../utils/tests/pack.utils';
 import { TxnUtils } from '../../utils/tests/txn.utils';
 import { RevealService } from './reveal.service';
 import { cloneDeep } from 'lodash';
+import { getDelegatedRevealProgramBytes } from '../../utils/logic-sign.utils';
 
 describe('RevealService', () => {
   jest.setTimeout(1000000);
 
   let service: RevealService;
   let algoDaemonService: AlgoDaemonService;
+  let indexerService: IndexerService;
 
   let assetCreatorAccount: {
     pack: PackUtils;
@@ -45,9 +47,11 @@ describe('RevealService', () => {
   }
 
   async function createPack() {
-    const params = assetCreatorAccount.pack.getTrantorianOfficialPackParams(
-      assetCreatorAccount.pack.getPlaceholderCID(),
-    );
+    const params =
+      await assetCreatorAccount.pack.getTrantorianOfficialPackParams(
+        indexerService,
+        assetCreatorAccount.pack.getPlaceholderCID(),
+      );
     const createTxn = await assetCreatorAccount.txn.assetCreateTxn(params);
     const signedTxn = assetCreatorAccount.txn.signTxn(createTxn);
     const result = await assetCreatorAccount.txn.sendTxns([signedTxn]);
@@ -61,6 +65,7 @@ describe('RevealService', () => {
 
     service = module.get<RevealService>(RevealService);
     algoDaemonService = module.get<AlgoDaemonService>(AlgoDaemonService);
+    indexerService = module.get<IndexerService>(IndexerService);
 
     service['pickAndRemoveRandomNFT'] = () => {
       const idx = Math.floor(Math.random() * tmpStorage.others.length);
@@ -77,31 +82,15 @@ describe('RevealService', () => {
 
   describe('NFT validations', () => {
     it('should check if NFT exists', async () => {
-      packInMemory.info = await service['checkIfNftExists'](packInMemory.id);
+      packInMemory.info = await service['_utils']["checkIfNftExists"](packInMemory.id);
       expect(packInMemory.info).toBeDefined();
     });
 
     it('should check if NFT is official pack', async () => {
-      const isValid: boolean = await service['checkIfValidNFT'](
+      const isValid: boolean = await service['_utils']['checkIfValidNFT'](
         packInMemory.info,
       );
       expect(isValid).toBe(true);
-    });
-  });
-
-  describe('Txn off-chain validations', () => {
-    it('should check if payment txn is valid', async () => {
-      const payTxn = await clientAccount.txn.paymentTxn(
-        clientAccount.account.addr,
-        algoDaemonService.serverAddr,
-        1000,
-      );
-      const signedTxn = clientAccount.txn.signTxn(payTxn);
-      const senderAddr = await service['checkRevealPaymentTxn'](
-        Buffer.from(signedTxn).toString('base64'),
-      );
-
-      expect(isValidAddress(senderAddr)).toBe(true);
     });
   });
 
@@ -119,7 +108,7 @@ describe('RevealService', () => {
 
       await clientAccount.txn.sendTxns([optInSigned, sendAsaSigned]);
 
-      await service['checkNftHolds'](
+      await service['_utils']['checkNftHolds'](
         clientAccount.account.addr,
         packInMemory.id,
       );
@@ -128,20 +117,27 @@ describe('RevealService', () => {
 
   describe('Complete reveal process', () => {
     it('Should return the updated ipfs_cid', async () => {
-      const payTxn = await clientAccount.txn.paymentTxn(
-        clientAccount.account.addr,
-        algoDaemonService.serverAddr,
-        1000,
+      const programSourceCode = getDelegatedRevealProgramBytes();
+      const result = await algoDaemonService.compile(
+        programSourceCode
       );
-      const signedTxn = clientAccount.txn.signTxn(payTxn);
 
-      const ipfs_cid = await service['reveal']({
-        assetId: packInMemory.id,
-        signedTxn: Buffer.from(signedTxn).toString('base64'),
-      });
+      const logicSig = makeLogicSig(Buffer.from(result.result, 'base64'), [
+        Buffer.from(packInMemory.id.toString())
+      ]);
+      logicSig.sign(clientAccount.account.sk);
+
+      const ipfs_cid = await service['reveal'](
+        {
+          address: clientAccount.account.addr,
+        },
+        {
+          assetId: packInMemory.id,
+          logicSig: Buffer.from(logicSig.toByte()).toString("base64"),
+        },
+      );
 
       expect(ipfs_cid).toBeDefined();
-      // TODO: Mock NFTs.json updates
     });
   });
 });

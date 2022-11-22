@@ -42,4 +42,11 @@ export class IndexerService extends BlockchainService {
       isFrozen: asset['is-frozen']
     };
   }
+
+  async getTotalAssetsForAccount(address: string) {
+    const result: Record<string, any[]> = await this.client
+      .lookupAccountAssets(address)
+      .do();
+      return  result['assets'].length;
+  }
 }
