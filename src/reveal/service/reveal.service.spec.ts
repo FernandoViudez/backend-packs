@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import algosdk, { assignGroupID, encodeUint64, LogicSigAccount, logicSigFromByte, makeLogicSig } from 'algosdk';
+import { makeLogicSig } from 'algosdk';
 import { Asset } from '../../interfaces/asset.interface';
 import { AlgoDaemonService } from '../../services/algo-daemon.service';
 import { IndexerService } from '../../services/indexer.service';
@@ -12,8 +12,6 @@ import { cloneDeep } from 'lodash';
 import { getDelegatedRevealProgramBytes } from '../../utils/logic-sign.utils';
 
 describe('RevealService', () => {
-  jest.setTimeout(1000000);
-
   let service: RevealService;
   let algoDaemonService: AlgoDaemonService;
   let indexerService: IndexerService;
@@ -41,7 +39,7 @@ describe('RevealService', () => {
     const account = new AccountUtils(algoDaemonService, mnemonic);
     return {
       account: account,
-      pack: new PackUtils(algoDaemonService, account),
+      pack: new PackUtils(algoDaemonService, indexerService, account),
       txn: new TxnUtils(algoDaemonService, account),
     };
   }
@@ -49,7 +47,6 @@ describe('RevealService', () => {
   async function createPack() {
     const params =
       await assetCreatorAccount.pack.getTrantorianOfficialPackParams(
-        indexerService,
         assetCreatorAccount.pack.getPlaceholderCID(),
       );
     const createTxn = await assetCreatorAccount.txn.assetCreateTxn(params);
@@ -80,41 +77,6 @@ describe('RevealService', () => {
     await createPack();
   });
 
-  describe('NFT validations', () => {
-    it('should check if NFT exists', async () => {
-      packInMemory.info = await service['_utils']["checkIfNftExists"](packInMemory.id);
-      expect(packInMemory.info).toBeDefined();
-    });
-
-    it('should check if NFT is official pack', async () => {
-      const isValid: boolean = await service['_utils']['checkIfValidNFT'](
-        packInMemory.info,
-      );
-      expect(isValid).toBe(true);
-    });
-  });
-
-  describe('On chain validations', () => {
-    it('should check if sender holds the created NFT', async () => {
-      const optInTxn = await clientAccount.txn.assetOptInTxn(packInMemory.id);
-      const sendAssetTxn = await assetCreatorAccount.txn.assetSendTxn(
-        assetCreatorAccount.account.addr,
-        clientAccount.account.addr,
-        packInMemory.id,
-      );
-      assignGroupID([optInTxn, sendAssetTxn]);
-      const optInSigned = clientAccount.txn.signTxn(optInTxn);
-      const sendAsaSigned = assetCreatorAccount.txn.signTxn(sendAssetTxn);
-
-      await clientAccount.txn.sendTxns([optInSigned, sendAsaSigned]);
-
-      await service['_utils']['checkNftHolds'](
-        clientAccount.account.addr,
-        packInMemory.id,
-      );
-    });
-  });
-
   describe('Complete reveal process', () => {
     it('Should return the updated ipfs_cid', async () => {
       const programSourceCode = getDelegatedRevealProgramBytes();
@@ -122,9 +84,12 @@ describe('RevealService', () => {
         programSourceCode
       );
 
-      const logicSig = makeLogicSig(Buffer.from(result.result, 'base64'), [
-        Buffer.from(packInMemory.id.toString())
-      ]);
+      const logicSig = makeLogicSig(
+        Buffer.from(result.result, 'base64'), 
+        [
+          Buffer.from(packInMemory.id.toString())
+        ]
+      );
       logicSig.sign(clientAccount.account.sk);
 
       const ipfs_cid = await service['reveal'](

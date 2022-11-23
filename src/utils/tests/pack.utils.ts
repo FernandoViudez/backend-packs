@@ -8,11 +8,12 @@ export class PackUtils {
 
     constructor(
         private readonly algoDaemonService: AlgoDaemonService,
+        private readonly indexerService: IndexerService,
         private readonly account: Account
     ){}
 
-    async getTrantorianOfficialPackParams(indexerService: IndexerService, cid: string) {
-        const length = await indexerService.getTotalAssetsForAccount(process.env.PACK_CREATOR_ADDR);
+    async getTrantorianOfficialPackParams(cid: string) {
+        const length = await this.indexerService.getTotalAssetsForAccount(process.env.PACK_CREATOR_ADDR);
         return {
           decimals: 0,
           total: 1,

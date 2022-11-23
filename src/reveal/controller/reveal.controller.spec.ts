@@ -13,6 +13,7 @@ import { RevealController } from './reveal.controller';
 describe('RevealController', () => {
   let controller: RevealController;
   let algoDaemonService: AlgoDaemonService;
+  let indexerService: IndexerService;
 
   let tmpAccount: {
     account: AccountUtils,
@@ -25,7 +26,7 @@ describe('RevealController', () => {
     tmpAccount = {
       account,
       txn: new TxnUtils(algoDaemonService, account),
-      pack: new PackUtils(algoDaemonService, account),
+      pack: new PackUtils(algoDaemonService, indexerService, account),
     };
   }
 
@@ -37,6 +38,7 @@ describe('RevealController', () => {
 
     controller = module.get<RevealController>(RevealController);
     algoDaemonService = module.get<AlgoDaemonService>(AlgoDaemonService);
+    indexerService = module.get<IndexerService>(IndexerService);
 
     setupAccount();
   })
@@ -55,7 +57,7 @@ describe('RevealController', () => {
 
     const revealDto: RevealDto = {
       assetId: 1,
-      signedTxn: Buffer.from(signedTxn).toString("base64"),
+      logicSig: Buffer.from(signedTxn).toString("base64"),
     };
     const plainDto = plainToInstance(RevealDto, revealDto);
     const errors = await validate(plainDto);

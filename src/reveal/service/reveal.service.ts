@@ -36,9 +36,9 @@ export class RevealService {
   async processBodyBeforeReveal(sender: string, body: RevealDto) {
     const assetInfo = await this._utils.checkIfNftExists(body.assetId);
 
-    await this._utils.checkIfValidNFT(assetInfo);
+    this._utils.checkIfValidNFT(assetInfo);
 
-    await this._utils.checkRevealDelegatedProgram(sender, body);
+    this._utils.checkRevealDelegatedProgram(sender, body);
 
     await this._utils.checkNftHolds(sender, body.assetId);
   }

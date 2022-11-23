@@ -1,4 +1,4 @@
-#pragma version 5
+#pragma version 6
 gtxn 0 TypeEnum
 int pay
 ==
@@ -28,7 +28,7 @@ int acfg
 ==
 assert
 gtxn 1 ConfigAsset
-txna ApplicationArgs 0
+arg 0
 callsub atoi_2
 ==
 assert

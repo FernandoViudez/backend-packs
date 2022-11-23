@@ -86,6 +86,7 @@
     "setupFiles": [
       "dotenv/config"
     ],
+    "testTimeout": 10000000,
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }
