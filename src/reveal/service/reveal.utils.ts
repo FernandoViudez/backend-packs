@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
-import { assignGroupID, decodeAddress, decodeObj, decodeUint64, makeAssetConfigTxnWithSuggestedParamsFromObject, makePaymentTxnWithSuggestedParamsFromObject, signLogicSigTransactionObject } from "algosdk";
+import { assignGroupID, decodeAddress, decodeUint64, makeAssetConfigTxnWithSuggestedParamsFromObject, makePaymentTxnWithSuggestedParamsFromObject, signLogicSigTransactionObject } from "algosdk";
 import { AssetHolding } from "../../interfaces/asset-holding.interface";
 import { Asset } from "../../interfaces/asset.interface";
 import { AlgoDaemonService } from "../../services/algo-daemon.service";
@@ -49,7 +49,7 @@ export class RevealUtils {
 
   checkRevealDelegatedProgram(sender: string, body: RevealDto) {
     const signed = fromStringToLogicSign(body.logicSig);
-    const assetId = parseInt(Buffer.from(signed.args[0]).toString());
+    const assetId = decodeUint64(signed.args[0], "safe");
     if (
       !signed.verify(decodeAddress(sender).publicKey)
       ||

@@ -1,16 +1,11 @@
-{
-    "placeholder": {
-        "ipfs_uri": "Qmdr77E53REayi7nti9tKH9xDmbWr8ziDMtd9yfZ8n4iHU"
+[
+    {
+        "ipfs_uri": "QmWsApQxC3qJi6mfavMH6oPuyYvuBvidRCr8C63yDeFaj9"
     },
-    "others": [
-        {
-            "ipfs_uri": "QmWsApQxC3qJi6mfavMH6oPuyYvuBvidRCr8C63yDeFaj9"
-        },
-        {
-            "ipfs_uri": "QmcptwWj75omD5BhFvZL2Fv1cTVhpGtwWMuoWeiazvJxPv"
-        },
-        {
-            "ipfs_uri": "QmYtysLCgK2nyxCV9yBRkN7CTMrPwKjmWbRSkQuXUPfeaQ"
-        }
-    ]
-}
+    {
+        "ipfs_uri": "QmcptwWj75omD5BhFvZL2Fv1cTVhpGtwWMuoWeiazvJxPv"
+    },
+    {
+        "ipfs_uri": "QmYtysLCgK2nyxCV9yBRkN7CTMrPwKjmWbRSkQuXUPfeaQ"
+    }
+]

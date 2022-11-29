@@ -1,13 +1,12 @@
 import {
   Account,
-  makeAssetConfigTxnWithSuggestedParamsFromObject,
   makeAssetCreateTxnWithSuggestedParamsFromObject,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   makePaymentTxnWithSuggestedParamsFromObject,
   Transaction,
 } from 'algosdk';
 import { delay, from, lastValueFrom } from 'rxjs';
-import { AlgoDaemonService } from '../../services/algo-daemon.service';
+import { AlgoDaemonService } from '../../src/services/algo-daemon.service';
 
 export class TxnUtils {
   constructor(
@@ -68,7 +67,7 @@ export class TxnUtils {
 
   async sendTxns(txns: Uint8Array[]): Promise<Record<string, any>> {
     const result = await this.algoDaemonService.sendSignedTxns(txns);
-    await this.delay(2000);
+    await this.delay(5000);
     return result;
   }
 

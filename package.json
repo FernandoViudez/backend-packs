@@ -72,7 +72,7 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -84,7 +84,7 @@
       "./src/storage"
     ],
     "setupFiles": [
-      "dotenv/config"
+      "./test/config/dotenv.config.ts"
     ],
     "testTimeout": 10000000,
     "coverageDirectory": "../coverage",

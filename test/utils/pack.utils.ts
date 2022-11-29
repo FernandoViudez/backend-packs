@@ -1,8 +1,8 @@
 import { Account } from "algosdk";
-import { AlgoDaemonService } from "../../services/algo-daemon.service";
-import { IndexerService } from "../../services/indexer.service";
-import { fromIpfsCidToAlgorandAddress } from "../ipfs.utils";
-import { getNFTPlaceholder } from "../NFTs.utils"
+import { AlgoDaemonService } from "../../src/services/algo-daemon.service";
+import { IndexerService } from "../../src/services/indexer.service";
+import { fromIpfsCidToAlgorandAddress } from "../../src/utils/ipfs.utils";
+import { getNFTPlaceholder } from "../../src/utils/NFTs.utils";
 
 export class PackUtils {
 

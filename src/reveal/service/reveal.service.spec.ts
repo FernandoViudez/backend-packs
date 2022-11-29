@@ -1,59 +1,80 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { makeLogicSig } from 'algosdk';
-import { Asset } from '../../interfaces/asset.interface';
+import { encodeUint64, makeLogicSig } from 'algosdk';
 import { AlgoDaemonService } from '../../services/algo-daemon.service';
 import { IndexerService } from '../../services/indexer.service';
 import { NFTs } from '../../utils/NFTs.utils';
-import { AccountUtils } from '../../utils/tests/account.utils';
-import { PackUtils } from '../../utils/tests/pack.utils';
-import { TxnUtils } from '../../utils/tests/txn.utils';
+import { AccountUtils } from '../../../test/utils/account.utils';
+import { PackUtils } from '../../../test/utils/pack.utils';
+import { TxnUtils } from '../../../test/utils/txn.utils';
 import { RevealService } from './reveal.service';
 import { cloneDeep } from 'lodash';
-import { getDelegatedRevealProgramBytes } from '../../utils/logic-sign.utils';
+import {
+  exportLogicSig,
+} from '../../utils/logic-sign.utils';
+import { LogicSig } from 'algosdk/dist/types/src/logicsig';
+import { getProgram } from '../teal/delegated-teal.utils';
+
+interface Account {
+  self: AccountUtils;
+  txn: TxnUtils;
+  pack: PackUtils;
+}
+
+interface Deps {
+  algoDaemonService: AlgoDaemonService;
+  indexerService: IndexerService;
+}
+
+const initializeAccount = async (
+  deps: Deps,
+  mnemonic?: string,
+): Promise<Account> => {
+  const acc = new AccountUtils(deps.algoDaemonService, mnemonic);
+  if (!mnemonic) {
+    await acc.fund();
+  }
+  return {
+    self: acc,
+    pack: new PackUtils(deps.algoDaemonService, deps.indexerService, acc),
+    txn: new TxnUtils(deps.algoDaemonService, acc),
+  };
+};
+
+const createPack = async (acc: Account) => {
+  const params = await acc.pack.getTrantorianOfficialPackParams(
+    acc.pack.getPlaceholderCID(),
+  );
+  const assetCreateTxn = await acc.txn.assetCreateTxn(params);
+  const signedTx = acc.txn.signTxn(assetCreateTxn);
+  const result = await acc.txn.sendTxns([signedTx]);
+  return parseInt(result['asset-index']);
+};
+
+const transferAsa = async (from: Account, to: Account, asaId: number) => {
+  await to.self.receiveAsset(asaId);
+
+  const asaSendTxn = await from.txn.assetSendTxn(
+    from.self.addr,
+    to.self.addr,
+    asaId,
+  );
+
+  const signedTx = from.txn.signTxn(asaSendTxn);
+  await from.txn.sendTxns([signedTx]);
+};
 
 describe('RevealService', () => {
   let service: RevealService;
-  let algoDaemonService: AlgoDaemonService;
-  let indexerService: IndexerService;
-
-  let assetCreatorAccount: {
-    pack: PackUtils;
-    txn: TxnUtils;
-    account: AccountUtils;
-  };
-
-  let clientAccount: {
-    pack: PackUtils;
-    txn: TxnUtils;
-    account: AccountUtils;
-  };
-
+  let deps: Deps;
+  let client: Account;
+  let creator: Account;
+  let program: {result: string, hash: string}; 
   const tmpStorage = cloneDeep(NFTs);
-
-  const packInMemory: {
-    id: number;
-    info: Asset;
-  } = {} as any;
-
-  function setTmpAccount(mnemonic?: string) {
-    const account = new AccountUtils(algoDaemonService, mnemonic);
-    return {
-      account: account,
-      pack: new PackUtils(algoDaemonService, indexerService, account),
-      txn: new TxnUtils(algoDaemonService, account),
-    };
-  }
-
-  async function createPack() {
-    const params =
-      await assetCreatorAccount.pack.getTrantorianOfficialPackParams(
-        assetCreatorAccount.pack.getPlaceholderCID(),
-      );
-    const createTxn = await assetCreatorAccount.txn.assetCreateTxn(params);
-    const signedTxn = assetCreatorAccount.txn.signTxn(createTxn);
-    const result = await assetCreatorAccount.txn.sendTxns([signedTxn]);
-    packInMemory.id = result['asset-index'];
-  }
+  let assetsId = {
+    valid: 0,
+    invalid: 0,
+  };
+  let logicSig: LogicSig;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -61,48 +82,99 @@ describe('RevealService', () => {
     }).compile();
 
     service = module.get<RevealService>(RevealService);
-    algoDaemonService = module.get<AlgoDaemonService>(AlgoDaemonService);
-    indexerService = module.get<IndexerService>(IndexerService);
-
-    service['pickAndRemoveRandomNFT'] = () => {
-      const idx = Math.floor(Math.random() * tmpStorage.others.length);
-      return tmpStorage.others[idx].ipfs_uri;
+    deps = {
+      algoDaemonService: module.get<AlgoDaemonService>(AlgoDaemonService),
+      indexerService: module.get<IndexerService>(IndexerService),
     };
 
-    assetCreatorAccount = setTmpAccount(process.env.PACK_CREATOR_MNEMONIC);
+    service['pickAndRemoveRandomNFT'] = () => {
+      const idx = Math.floor(Math.random() * tmpStorage.length);
+      return tmpStorage[idx].ipfs_uri;
+    };
 
-    clientAccount = setTmpAccount();
-    await clientAccount.account.fund();
+    client = await initializeAccount(deps);
+    creator = await initializeAccount(deps, process.env.PACK_CREATOR_MNEMONIC);
 
-    await createPack();
+    assetsId = {
+      valid: await createPack(creator),
+      invalid: await createPack(client),
+    };
+
+    await transferAsa(creator, client, assetsId.valid);
+    program = await getProgram(deps.algoDaemonService);
   });
 
-  describe('Complete reveal process', () => {
-    it('Should return the updated ipfs_cid', async () => {
-      const programSourceCode = getDelegatedRevealProgramBytes();
-      const result = await algoDaemonService.compile(
-        programSourceCode
-      );
+  beforeEach(async () => {
+    logicSig = makeLogicSig(Buffer.from(program.result, 'base64'), [
+      encodeUint64(assetsId.valid),
+    ]);
+  })
 
-      const logicSig = makeLogicSig(
-        Buffer.from(result.result, 'base64'), 
-        [
-          Buffer.from(packInMemory.id.toString())
-        ]
-      );
-      logicSig.sign(clientAccount.account.sk);
+  describe('NFT reveal process', () => {
+    test('Should pass when reveal asa from client', async () => {
+      logicSig.sign(client.self.sk);
 
       const ipfs_cid = await service['reveal'](
         {
-          address: clientAccount.account.addr,
+          address: client.self.addr,
         },
         {
-          assetId: packInMemory.id,
-          logicSig: Buffer.from(logicSig.toByte()).toString("base64"),
+          assetId: assetsId.valid,
+          logicSig: exportLogicSig(logicSig),
         },
       );
 
       expect(ipfs_cid).toBeDefined();
+    });
+    
+    test('Should fail when not sign logic program', async () => {
+      try {
+        await service['reveal'](
+          {
+            address: client.self.addr,
+          },
+          {
+            assetId: assetsId.valid,
+            logicSig: exportLogicSig(logicSig),
+          },
+        );  
+      } catch (error) {
+        expect(error.response.statusCode).toBe(400);
+      }
+    });
+    
+    test('Should fail when invalid addr passed', async () => {
+      try {
+        await service['reveal'](
+          {
+            address: deps.algoDaemonService.serverAddr,
+          },
+          {
+            assetId: assetsId.valid,
+            logicSig: exportLogicSig(logicSig),
+          },
+        );
+      } catch (error) {
+        expect(error.response.statusCode).toBe(400);
+      }
+    });
+    
+    test('Should fail when invalid asset-id', async () => {
+      try {
+        await service['reveal'](
+          {
+            address: client.self.addr,
+          },
+          {
+            assetId: assetsId.invalid,
+            logicSig: exportLogicSig(logicSig),
+          },
+        );
+        
+      } catch (error) {
+        expect(error.response.statusCode).toBe(400);
+      }
+
     });
   });
 });

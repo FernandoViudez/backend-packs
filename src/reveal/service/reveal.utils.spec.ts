@@ -1,15 +1,15 @@
-import { makeLogicSig } from 'algosdk';
+import { encodeUint64, makeLogicSig } from 'algosdk';
 import { LogicSig } from 'algosdk/dist/types/src/logicsig';
 import { AlgoDaemonService } from '../../services/algo-daemon.service';
 import { IndexerService } from '../../services/indexer.service';
 import {
   exportLogicSig,
-  getDelegatedRevealProgramBytes,
 } from '../../utils/logic-sign.utils';
-import { AccountUtils } from '../../utils/tests/account.utils';
-import { PackUtils } from '../../utils/tests/pack.utils';
-import { TxnUtils } from '../../utils/tests/txn.utils';
+import { AccountUtils } from '../../../test/utils/account.utils';
+import { PackUtils } from '../../../test/utils/pack.utils';
+import { TxnUtils } from '../../../test/utils/txn.utils';
 import { RevealUtils } from './reveal.utils';
+import { getProgram } from '../teal/delegated-teal.utils';
 
 interface Deps {
   algoDaemonService: AlgoDaemonService;
@@ -43,11 +43,17 @@ const initializeAccount = async (
   };
 };
 
-const createAsset = async (acc: Account): Promise<number> => {
+const createAsset = async (
+  acc: Account,
+  corruptManagerAddr = false,
+): Promise<number> => {
   const placeholderCID = acc.pack.getPlaceholderCID();
   const packParams = await acc.pack.getTrantorianOfficialPackParams(
     placeholderCID,
   );
+  if (corruptManagerAddr) {
+    packParams.manager = acc.self.addr;
+  }
   const txn = await acc.txn.assetCreateTxn(packParams);
   const signedTxn = acc.txn.signTxn(txn);
   const result = await acc.txn.sendTxns([signedTxn]);
@@ -82,12 +88,12 @@ describe('Reveal utils', () => {
   });
 
   describe('Validate if asset exists', () => {
-    it('should pass when passing valid asset id', async () => {
+    test('should pass when passing valid asset id', async () => {
       const result = await revealUtils.checkIfNftExists(assetsId.valid);
       expect(result.id).toBeDefined();
     });
 
-    it('should fail when passing incorrect asset id', async () => {
+    test('should fail when passing incorrect asset id', async () => {
       try {
         await revealUtils.checkIfNftExists(-1);
       } catch (error) {
@@ -98,14 +104,24 @@ describe('Reveal utils', () => {
   });
 
   describe('Validate if is official NFT', () => {
-    it('should pass when all conditions are met', async () => {
+    test('should pass when all conditions are met', async () => {
       const asset = await deps.indexerService.getAssetInfo(assetsId.valid);
       const result = revealUtils.checkIfValidNFT(asset);
       expect(result).toBe(true);
     });
 
-    it('should fail when created from another account different from trantorian official account', async () => {
+    test('should fail when created from another account different from Trantorian official account', async () => {
       const asset = await deps.indexerService.getAssetInfo(assetsId.invalid);
+      try {
+        revealUtils.checkIfValidNFT(asset);
+      } catch (error) {
+        expect(error.response.statusCode).toBe(400);
+      }
+    });
+
+    test('should fail when created from Trantorian but manager is not this back addr', async () => {
+      const invalidAsset = await createAsset(creatorAccount, true);
+      const asset = await deps.indexerService.getAssetInfo(invalidAsset);
       try {
         revealUtils.checkIfValidNFT(asset);
       } catch (error) {
@@ -127,7 +143,7 @@ describe('Reveal utils', () => {
       await creatorAccount.txn.sendTxns([asaSendSignedTxn]);
     });
 
-    it('should pass when client account has the NFT', async () => {
+    test('should pass when client account has the NFT', async () => {
       const result = await revealUtils.checkNftHolds(
         clientAccount.self.addr,
         assetsId.valid,
@@ -135,7 +151,7 @@ describe('Reveal utils', () => {
       expect(result).not.toBeDefined();
     });
 
-    it('should fail when creator account has not the NFT', async () => {
+    test('should fail when creator account has not the NFT', async () => {
       try {
         await revealUtils.checkNftHolds(
           creatorAccount.self.addr,
@@ -152,17 +168,15 @@ describe('Reveal utils', () => {
     let program: { result: string; hash: string };
 
     beforeAll(async () => {
-      program = await deps.algoDaemonService.compile(
-        getDelegatedRevealProgramBytes(),
-      );
+      program = await getProgram(deps.algoDaemonService);
     });
 
     beforeEach(async () => {
       const progr = new Uint8Array(Buffer.from(program.result, 'base64'));
-      logicSig = makeLogicSig(progr, [Buffer.from(assetsId.valid.toString())]);
+      logicSig = makeLogicSig(progr, [encodeUint64(assetsId.valid)]);
     });
 
-    it('should pass when logic signature has valid signature & asset id', () => {
+    test('should pass when logic signature has valid signature & asset id', () => {
       logicSig.sign(clientAccount.self.sk);
 
       const result = revealUtils.checkRevealDelegatedProgram(
@@ -175,7 +189,7 @@ describe('Reveal utils', () => {
       expect(result).not.toBeDefined();
     });
 
-    it('should fail when logic signature was not signed', () => {
+    test('should fail when logic signature was not signed', () => {
       try {
         revealUtils.checkRevealDelegatedProgram(clientAccount.self.addr, {
           assetId: assetsId.valid,
@@ -186,7 +200,7 @@ describe('Reveal utils', () => {
       }
     });
 
-    it('should fail when logic signature has invalid asset-id', () => {
+    test('should fail when logic signature has invalid asset-id', () => {
       try {
         logicSig.sign(clientAccount.self.sk);
 

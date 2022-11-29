@@ -1,5 +1,5 @@
 import { Account, generateAccount, mnemonicToSecretKey } from 'algosdk';
-import { AlgoDaemonService } from '../../services/algo-daemon.service';
+import { AlgoDaemonService } from '../../src/services/algo-daemon.service';
 import { TxnUtils } from './txn.utils';
 
 export class AccountUtils {

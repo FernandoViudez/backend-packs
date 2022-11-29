@@ -1,0 +1,60 @@
+#pragma version 6
+global GroupSize
+int 2
+==
+assert
+gtxn 0 Fee
+int 1000
+==
+assert
+gtxn 0 TypeEnum
+int pay
+==
+assert
+gtxn 0 Amount
+int 1000
+==
+assert
+gtxn 0 Receiver
+addr TMPL_ADDRA
+==
+assert
+gtxn 0 RekeyTo
+global ZeroAddress
+==
+assert
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+assert
+gtxn 1 Fee
+int 1000
+==
+assert
+gtxn 1 TypeEnum
+int acfg
+==
+assert
+gtxn 1 ConfigAsset
+arg 0
+btoi
+==
+assert
+gtxn 1 ConfigAssetReserve
+global ZeroAddress
+!=
+assert
+gtxn 1 ConfigAssetManager
+addr TMPL_ADDRB
+==
+assert
+gtxn 1 RekeyTo
+global ZeroAddress
+==
+assert
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+assert
+int 1
+return

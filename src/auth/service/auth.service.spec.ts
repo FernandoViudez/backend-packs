@@ -1,17 +1,36 @@
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  isValidAddress,
+  generateAccount,
+  isValidAddress, makePaymentTxnWithSuggestedParamsFromObject,
 } from 'algosdk';
-import { getAuthOfflineTxn } from '../../utils/tests.utils';
+import { AlgoDaemonService } from '../../services/algo-daemon.service';
 import { AuthService } from './auth.service';
+
+const getAuthOfflineTxn = (corrupt = false) => {
+  const acc = generateAccount();
+  const otherAcc = generateAccount();
+  const payTx = makePaymentTxnWithSuggestedParamsFromObject({
+    amount: 0,
+    from: corrupt ? otherAcc.addr : acc.addr,
+    to: corrupt ? otherAcc.addr : acc.addr,
+    suggestedParams: {
+      fee: 0,
+      firstRound: 1,
+      lastRound: 1,
+      genesisHash: 'test',
+      genesisID: ' test',
+    },
+  });
+  return Buffer.from(payTx.signTxn(acc.sk)).toString("base64");
+}
 
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService],
+      providers: [AuthService, AlgoDaemonService],
       imports: [
         JwtModule.register({
           secret: 'my_secret_key',
@@ -23,17 +42,13 @@ describe('AuthService', () => {
     jwtService = module.get<JwtService>(JwtService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('[validateUser] should not fail when verifying signed txn', async () => {
+  it('should not fail when verifying signed txn', async () => {
     const validTxn = getAuthOfflineTxn();
     const response = await service.validateUser(validTxn);
     expect(isValidAddress(response as string)).toBe(true);
   });
 
-  it('[validateUser] should fail because of corrupt txn', async () => {
+  it('should fail because of corrupt txn', async () => {
     const validTxn = getAuthOfflineTxn(true);
     try {
       await service.validateUser(validTxn);
@@ -42,7 +57,7 @@ describe('AuthService', () => {
     }
   });
 
-  it('[login] should return correct jwt', async () => {
+  it('should return correct jwt', async () => {
     const validTxn = getAuthOfflineTxn();
     const response = await service.login({
       signedTxn: validTxn
@@ -52,7 +67,7 @@ describe('AuthService', () => {
     expect(payload.iat).toBeDefined();
   });
 
-  it('[login] should fail because of corrupt txn', async () => {
+  it('should fail because of corrupt txn', async () => {
     const validTxn = getAuthOfflineTxn(true);
     try {
       await service.login({
