@@ -25,7 +25,7 @@ export class AuthService {
     const address = await this.validateUser(body.signedTxn);
     const payload = { address };
     return {
-      access_token: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload),
       program: (await getProgram(this.algoDaemonService)).result,
     };
   }

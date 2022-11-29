@@ -62,7 +62,7 @@ describe('AuthService', () => {
     const response = await service.login({
       signedTxn: validTxn
     })
-    const payload: any = jwtService.decode(response.access_token);
+    const payload: any = jwtService.decode(response.accessToken);
     expect(isValidAddress(payload.address)).toBe(true);
     expect(payload.iat).toBeDefined();
   });

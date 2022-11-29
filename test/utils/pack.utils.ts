@@ -26,6 +26,10 @@ export class PackUtils {
         };
     }
 
+    async getPack(packId: number) {
+        return await this.indexerService.getAssetInfo(packId)
+    }
+
     getPlaceholderCID() {
         return getNFTPlaceholder();
     }

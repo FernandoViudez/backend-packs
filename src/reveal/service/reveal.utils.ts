@@ -49,13 +49,18 @@ export class RevealUtils {
 
   checkRevealDelegatedProgram(sender: string, body: RevealDto) {
     const signed = fromStringToLogicSign(body.logicSig);
-    const assetId = decodeUint64(signed.args[0], "safe");
+
+    if (!signed.args){
+      throw new BadRequestException("Invalid args at logic signature");
+    } 
+    
+    const assetId = decodeUint64(signed.args[0], 'safe');
     if (
       !signed.verify(decodeAddress(sender).publicKey)
       ||
       body.assetId != assetId
     ) {
-      throw new BadRequestException();
+      throw new BadRequestException("Invalid signature for logic signature");
     }
   }
 

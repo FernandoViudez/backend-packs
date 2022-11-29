@@ -13,17 +13,8 @@ import {
 } from '../../utils/logic-sign.utils';
 import { LogicSig } from 'algosdk/dist/types/src/logicsig';
 import { getProgram } from '../teal/delegated-teal.utils';
-
-interface Account {
-  self: AccountUtils;
-  txn: TxnUtils;
-  pack: PackUtils;
-}
-
-interface Deps {
-  algoDaemonService: AlgoDaemonService;
-  indexerService: IndexerService;
-}
+import { Account } from '../../../test/interface/account.interface';
+import { Deps } from '../../../test/interface/deps.interface';
 
 const initializeAccount = async (
   deps: Deps,

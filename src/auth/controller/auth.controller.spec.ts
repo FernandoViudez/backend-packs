@@ -17,7 +17,7 @@ describe('AuthController', () => {
     controller = new AuthController(service);
     jest.spyOn(service, "login").mockImplementation(async (body: LoginDto) => {
         return {
-          access_token: 'some-jwt',
+          accessToken: 'some-jwt',
           program: 'some-program-result-b64'
         };
     })
@@ -28,10 +28,10 @@ describe('AuthController', () => {
   });
 
   type Response = { 
-    access_token: string;
+    accessToken: string;
     program: string;
   }
-  it('should return access_token as object', async () => {
+  it('should return access_token and program result', async () => {
     const randomAddress = generateAccount();
     const txn = makePaymentTxnWithSuggestedParamsFromObject({
       amount: 0,
@@ -51,7 +51,7 @@ describe('AuthController', () => {
     };
 
     const result: Response = await controller.login(loginDto);
-    expect(typeof result.access_token).toBe("string")
+    expect(typeof result.accessToken).toBe("string")
     expect(typeof result.program).toBe('string');
   });
 

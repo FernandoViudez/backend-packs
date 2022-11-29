@@ -10,17 +10,8 @@ import { PackUtils } from '../../../test/utils/pack.utils';
 import { TxnUtils } from '../../../test/utils/txn.utils';
 import { RevealUtils } from './reveal.utils';
 import { getProgram } from '../teal/delegated-teal.utils';
-
-interface Deps {
-  algoDaemonService: AlgoDaemonService;
-  indexerService: IndexerService;
-}
-
-interface Account {
-  self: AccountUtils;
-  txn: TxnUtils;
-  pack: PackUtils;
-}
+import { Deps } from '../../../test/interface/deps.interface';
+import { Account } from '../../../test/interface/account.interface';
 
 const initializeDeps = (deps: Deps) => {
   deps.algoDaemonService = new AlgoDaemonService();
