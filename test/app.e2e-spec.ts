@@ -99,10 +99,9 @@ describe('AppController (e2e)', () => {
         assetId: assetId,
         logicSig: exportLogicSig(logicSig),
       } as RevealDto);
-      
+    expect(res.error).toBe(false);
     expect(res.text).toBeDefined();
-
-    await lastValueFrom(from([1]).pipe(delay(4000))); // wait for the next block
+    await lastValueFrom(from([1]).pipe(delay(6000))); // wait for the next block
     const asaInfo = await client.pack.getPack(assetId);
     expect(asaInfo.manager).toBe(creator.self.addr);
     expect(asaInfo.reserve).not.toBe('');

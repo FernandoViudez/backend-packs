@@ -12,7 +12,7 @@ int pay
 ==
 assert
 gtxn 0 Amount
-int 1000
+int TMPL_PAY_AMNT
 ==
 assert
 gtxn 0 Receiver

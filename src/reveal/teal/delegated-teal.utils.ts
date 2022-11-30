@@ -18,11 +18,13 @@ export const getProgram = async (
   const templateVars = {
     TMPL_ADDRA: algoDaemonService.serverAddr,
     TMPL_ADDRB: process.env.PACK_CREATOR_ADDR,
+    TMPL_PAY_AMNT: process.env.REQUIRED_FEE_FOR_REVEAL,
   };
 
   let sourceCode = Buffer.from(getDelegatedRevealProgramBytes()).toString();
-  sourceCode = replace(sourceCode, 'TMPL_ADDRA', templateVars.TMPL_ADDRA);
-  sourceCode = replace(sourceCode, 'TMPL_ADDRB', templateVars.TMPL_ADDRB);
+  Object.keys(templateVars).forEach(key => {
+    sourceCode = replace(sourceCode, key, templateVars[key]);
+  })
 
   const program = await algoDaemonService.compile(sourceCode);
   return program;

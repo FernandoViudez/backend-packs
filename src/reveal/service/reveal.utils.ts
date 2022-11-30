@@ -71,7 +71,7 @@ export class RevealUtils {
     logicSign: string,
   ) {
     const paymentTxn = makePaymentTxnWithSuggestedParamsFromObject({
-      amount: 1000,
+      amount: parseInt(process.env.REQUIRED_FEE_FOR_REVEAL),
       from: sender,
       to: this.algoDaemonService.serverAddr,
       suggestedParams: await this.algoDaemonService.getSuggestedParams(),

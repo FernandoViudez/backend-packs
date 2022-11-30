@@ -1,7 +1,14 @@
-Prev vars:
-ADDR_A = your address
-ADDR_B = back address
-ADDR_C = Trantorian collection addr
+Template vars:
+
+- TMPL_ADDRA: address for receiving the payment txn
+- TMPL_ADDRB: address for the new manager address of the asset
+- TMPL_PAY_AMNT: amount required for reveal the pack (for paying fees)
+
+References:
+
+- ADDR_A: your address
+- ADDR_B: back address
+- ADDR_C: Trantorian collection addr
 
 Smart signature details:
 
